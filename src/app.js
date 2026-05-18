@@ -6,22 +6,17 @@ const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth.routes');
 const app = express();
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  'http://localhost:4200',
-].filter(Boolean);
-
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    const isAllowed =
-      allowedOrigins.includes(origin) ||
-      /^https:\/\/project-find-pharmacy.*\.vercel\.app$/.test(origin);
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      callback(new Error(`CORS blocked: ${origin}`));
+    if (
+      origin === 'http://localhost:4200' ||
+      origin.endsWith('.vercel.app') ||
+      origin === process.env.FRONTEND_URL
+    ) {
+      return callback(null, true);
     }
+    callback(new Error(`CORS blocked: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

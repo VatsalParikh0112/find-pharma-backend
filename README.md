@@ -64,7 +64,7 @@ The frontend should use `EventSource` or `fetch` with `ReadableStream` to consum
    - `JWT_SECRET` — a random strong secret (e.g. from `openssl rand -hex 32`)
    - `JWT_EXPIRES_IN` — `7d`
    - `FRONTEND_URL` — your Angular Vercel URL (e.g. `https://find-pharma.vercel.app`)
-   - `ANTHROPIC_API_KEY` — your Anthropic API key from [console.anthropic.com](https://console.anthropic.com)
+   - `GEMINI_API_KEY` — your free Gemini API key from [aistudio.google.com](https://aistudio.google.com)
 4. Deploy — Vercel will auto-detect `vercel.json`
 
 ---

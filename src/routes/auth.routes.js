@@ -13,6 +13,10 @@ router.post(
     body('password')
       .isLength({ min: 6 })
       .withMessage('Password must be at least 6 characters'),
+    body('phone')
+      .optional({ checkFalsy: true })
+      .matches(/^[0-9]{10}$/)
+      .withMessage('Please enter a valid 10-digit phone number'),
   ],
   register
 );

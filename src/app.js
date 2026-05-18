@@ -4,8 +4,6 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 
 const authRoutes = require('./routes/auth.routes');
-const aiRoutes = require('./routes/ai.routes');
-
 const app = express();
 
 app.use(
@@ -21,7 +19,6 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/ai', aiRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });

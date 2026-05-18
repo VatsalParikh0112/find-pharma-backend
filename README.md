@@ -10,7 +10,6 @@ Node.js + Express REST API with JWT authentication and MongoDB Atlas.
 | POST | `/api/auth/register` | Register new user | No |
 | POST | `/api/auth/login` | Login | No |
 | GET | `/api/auth/me` | Get current user | Yes |
-| POST | `/api/ai/search` | AI medicine search (streaming SSE) | Yes |
 
 ### Register
 ```json
@@ -32,19 +31,6 @@ POST /api/auth/login
 ```
 Returns `{ token, user }` — send token as `Authorization: Bearer <token>` header.
 
-### AI Medicine Search
-```json
-POST /api/ai/search
-Authorization: Bearer <token>
-{ "query": "paracetamol uses and dosage" }
-```
-Returns a **Server-Sent Events (SSE)** stream:
-```
-data: {"type":"text","text":"Paracetamol (Acetaminophen) is used..."}
-data: {"type":"done","usage":{"input_tokens":45,"output_tokens":210}}
-```
-The frontend should use `EventSource` or `fetch` with `ReadableStream` to consume the stream.
-
 ---
 
 ## Local Setup
@@ -64,7 +50,6 @@ The frontend should use `EventSource` or `fetch` with `ReadableStream` to consum
    - `JWT_SECRET` — a random strong secret (e.g. from `openssl rand -hex 32`)
    - `JWT_EXPIRES_IN` — `7d`
    - `FRONTEND_URL` — your Angular Vercel URL (e.g. `https://find-pharma.vercel.app`)
-   - `GEMINI_API_KEY` — your free Gemini API key from [aistudio.google.com](https://aistudio.google.com)
 4. Deploy — Vercel will auto-detect `vercel.json`
 
 ---

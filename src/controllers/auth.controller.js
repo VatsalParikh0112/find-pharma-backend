@@ -15,29 +15,38 @@ const register = async (req, res) => {
   }
 
   const { name, email, password, phone, emailOtp, phoneOtp } = req.body;
-  console.log('[Register] Attempt:', { email, phone: phone || 'none', hasEmailOtp: !!emailOtp, hasPhoneOtp: !!phoneOtp });
+  console.log('[Register] Attempt:', { email, phone: phone || 'none' });
 
   try {
+    // Check email uniqueness
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(409).json({ success: false, message: 'Email already registered' });
     }
 
+    // Check phone uniqueness if provided
+    if (phone) {
+      const existingPhone = await User.findOne({ phone });
+      if (existingPhone) {
+        return res.status(409).json({ success: false, message: 'Phone number already registered' });
+      }
+    }
+
+    // Verify email OTP
     const emailResult = await verifyOtpRecord(email.toLowerCase(), 'email', emailOtp);
     console.log('[Register] Email OTP result:', emailResult);
     if (!emailResult.valid) {
       return res.status(400).json({ success: false, message: emailResult.message });
     }
 
-    if (phone) {
-      const phoneResult = await verifyOtpRecord(phone, 'phone', phoneOtp);
-      console.log('[Register] Phone OTP result:', phoneResult);
-      if (!phoneResult.valid) {
-        return res.status(400).json({ success: false, message: `Phone OTP: ${phoneResult.message}` });
-      }
+    // Verify phone OTP
+    const phoneResult = await verifyOtpRecord(phone, 'phone', phoneOtp);
+    console.log('[Register] Phone OTP result:', phoneResult);
+    if (!phoneResult.valid) {
+      return res.status(400).json({ success: false, message: `Phone OTP: ${phoneResult.message}` });
     }
 
-    const user = await User.create({ name, email, password, ...(phone && { phone }) });
+    const user = await User.create({ name, email, password, phone });
     const token = generateToken(user._id);
 
     res.status(201).json({

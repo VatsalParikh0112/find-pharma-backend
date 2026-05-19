@@ -33,6 +33,22 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '10kb' }));
 
+// Lazy DB connection for serverless (Vercel)
+const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) return;
+  return mongoose.connect(process.env.MONGODB_URI);
+};
+
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('DB connection error:', err.message);
+    return res.status(500).json({ success: false, message: 'Database connection failed' });
+  }
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -48,17 +64,19 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Internal server error' });
 });
 
-const PORT = process.env.PORT || 5000;
-
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('MongoDB connected');
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  })
-  .catch((err) => {
-    console.error('MongoDB connection error:', err.message);
-    process.exit(1);
-  });
+// Only start the HTTP server when running locally (not on Vercel)
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  mongoose
+    .connect(process.env.MONGODB_URI)
+    .then(() => {
+      console.log('MongoDB connected');
+      app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    })
+    .catch((err) => {
+      console.error('MongoDB connection error:', err.message);
+      process.exit(1);
+    });
+}
 
 module.exports = app;

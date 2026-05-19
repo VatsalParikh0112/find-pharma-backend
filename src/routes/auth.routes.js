@@ -43,7 +43,8 @@ router.post(
 router.post(
   '/login',
   [
-    body('email').isEmail().withMessage('Please enter a valid email').normalizeEmail(),
+    body('email').optional({ checkFalsy: true }).isEmail().withMessage('Please enter a valid email').normalizeEmail(),
+    body('phone').optional({ checkFalsy: true }).matches(/^\+[1-9]\d{6,14}$/).withMessage('Please enter a valid phone number'),
     body('password').notEmpty().withMessage('Password is required'),
   ],
   login
@@ -51,14 +52,18 @@ router.post(
 
 router.post(
   '/send-otp',
-  [body('email').isEmail().withMessage('Please enter a valid email').normalizeEmail()],
+  [
+    body('email').optional({ checkFalsy: true }).isEmail().withMessage('Please enter a valid email').normalizeEmail(),
+    body('phone').optional({ checkFalsy: true }).matches(/^\+[1-9]\d{6,14}$/).withMessage('Please enter a valid phone number'),
+  ],
   sendOtp
 );
 
 router.post(
   '/verify-otp',
   [
-    body('email').isEmail().withMessage('Please enter a valid email').normalizeEmail(),
+    body('email').optional({ checkFalsy: true }).isEmail().withMessage('Please enter a valid email').normalizeEmail(),
+    body('phone').optional({ checkFalsy: true }).matches(/^\+[1-9]\d{6,14}$/).withMessage('Please enter a valid phone number'),
     body('otp').matches(/^\d{6}$/).withMessage('OTP must be a 6-digit number'),
   ],
   verifyOtp

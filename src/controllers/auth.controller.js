@@ -58,12 +58,16 @@ const login = async (req, res) => {
     return res.status(400).json({ success: false, errors: errors.array() });
   }
 
-  const { email, password } = req.body;
+  const { email, phone, password } = req.body;
+
+  if (!email && !phone) {
+    return res.status(400).json({ success: false, message: 'Email or phone number is required' });
+  }
 
   try {
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne(email ? { email } : { phone }).select('+password');
     if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+      return res.status(401).json({ success: false, message: `Invalid ${email ? 'email' : 'phone'} or password` });
     }
 
     if (!user.isActive) {

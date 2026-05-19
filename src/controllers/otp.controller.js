@@ -64,28 +64,37 @@ const sendRegistrationOtp = async (req, res) => {
   }
 };
 
-// POST /api/auth/send-otp  (login OTP)
+// POST /api/auth/send-otp  (login OTP — email or phone)
 const sendOtp = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ success: false, errors: errors.array() });
   }
 
-  const { email } = req.body;
+  const { email, phone } = req.body;
+
+  if (!email && !phone) {
+    return res.status(400).json({ success: false, message: 'Email or phone number is required' });
+  }
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne(email ? { email } : { phone });
     if (!user) {
-      return res.status(404).json({ success: false, message: 'No account found with this email' });
+      return res.status(404).json({ success: false, message: `No account found with this ${email ? 'email' : 'phone number'}` });
     }
     if (!user.isActive) {
       return res.status(403).json({ success: false, message: 'Account is disabled' });
     }
 
-    const code = await createOtp(email.toLowerCase(), 'email');
-    await sendOtpEmail(email, code);
-
-    res.json({ success: true, message: 'OTP sent to your email' });
+    if (email) {
+      const code = await createOtp(email.toLowerCase(), 'email');
+      await sendOtpEmail(email, code);
+      res.json({ success: true, message: 'OTP sent to your email' });
+    } else {
+      const code = await createOtp(phone, 'phone');
+      await sendOtpSms(phone, code);
+      res.json({ success: true, message: 'OTP sent to your phone' });
+    }
   } catch (err) {
     console.error('Send OTP error:', err);
     res.status(500).json({ success: false, message: 'Failed to send OTP' });
@@ -99,15 +108,22 @@ const verifyOtp = async (req, res) => {
     return res.status(400).json({ success: false, errors: errors.array() });
   }
 
-  const { email, otp } = req.body;
+  const { email, phone, otp } = req.body;
+
+  if (!email && !phone) {
+    return res.status(400).json({ success: false, message: 'Email or phone number is required' });
+  }
 
   try {
-    const result = await verifyOtpRecord(email.toLowerCase(), 'email', otp);
+    const target = email ? email.toLowerCase() : phone;
+    const type = email ? 'email' : 'phone';
+
+    const result = await verifyOtpRecord(target, type, otp);
     if (!result.valid) {
       return res.status(400).json({ success: false, message: result.message });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne(email ? { email } : { phone });
     const token = generateToken(user._id);
 
     res.json({

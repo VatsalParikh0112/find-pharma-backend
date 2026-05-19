@@ -14,7 +14,8 @@ const register = async (req, res) => {
     return res.status(400).json({ success: false, errors: errors.array() });
   }
 
-  const { name, email, password, phone, emailOtp } = req.body;
+  const { name, email, password, phone, emailOtp, phoneOtp } = req.body;
+  console.log('[Register] Attempt:', { email, phone: phone || 'none', hasEmailOtp: !!emailOtp, hasPhoneOtp: !!phoneOtp });
 
   try {
     const existing = await User.findOne({ email });
@@ -23,8 +24,17 @@ const register = async (req, res) => {
     }
 
     const emailResult = await verifyOtpRecord(email.toLowerCase(), 'email', emailOtp);
+    console.log('[Register] Email OTP result:', emailResult);
     if (!emailResult.valid) {
       return res.status(400).json({ success: false, message: emailResult.message });
+    }
+
+    if (phone) {
+      const phoneResult = await verifyOtpRecord(phone, 'phone', phoneOtp);
+      console.log('[Register] Phone OTP result:', phoneResult);
+      if (!phoneResult.valid) {
+        return res.status(400).json({ success: false, message: `Phone OTP: ${phoneResult.message}` });
+      }
     }
 
     const user = await User.create({ name, email, password, ...(phone && { phone }) });

@@ -48,7 +48,16 @@ const sendRegistrationOtp = async (req, res) => {
     const emailCode = await createOtp(email.toLowerCase(), 'email');
     await sendOtpEmail(email, emailCode);
 
-    res.json({ success: true, message: 'OTP sent to your email' });
+    if (phone) {
+      const phoneCode = await createOtp(phone, 'phone');
+      await sendOtpSms(phone, phoneCode);
+    }
+
+    res.json({
+      success: true,
+      message: phone ? 'OTP sent to your email and phone' : 'OTP sent to your email',
+      phoneSent: !!phone,
+    });
   } catch (err) {
     console.error('Send registration OTP error:', err);
     res.status(500).json({ success: false, message: 'Failed to send OTPs' });

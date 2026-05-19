@@ -7,6 +7,10 @@ const { protect } = require('../middleware/auth.middleware');
 const router = express.Router();
 
 const otpRule = body('emailOtp').matches(/^\d{6}$/).withMessage('Email OTP must be 6 digits');
+const phoneOtpRule = body('phoneOtp')
+  .if(body('phone').exists({ checkFalsy: true }))
+  .matches(/^\d{6}$/)
+  .withMessage('Phone OTP must be 6 digits');
 
 router.post(
   '/send-registration-otp',
@@ -14,8 +18,8 @@ router.post(
     body('email').isEmail().withMessage('Please enter a valid email').normalizeEmail(),
     body('phone')
       .optional({ checkFalsy: true })
-      .matches(/^[0-9]{10}$/)
-      .withMessage('Please enter a valid 10-digit phone number'),
+      .matches(/^\+[1-9]\d{6,14}$/)
+      .withMessage('Please enter a valid international phone number (e.g. +12025551234)'),
   ],
   sendRegistrationOtp
 );
@@ -28,9 +32,10 @@ router.post(
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
     body('phone')
       .optional({ checkFalsy: true })
-      .matches(/^[0-9]{10}$/)
-      .withMessage('Please enter a valid 10-digit phone number'),
+      .matches(/^\+[1-9]\d{6,14}$/)
+      .withMessage('Please enter a valid international phone number (e.g. +12025551234)'),
     otpRule,
+    phoneOtpRule,
   ],
   register
 );

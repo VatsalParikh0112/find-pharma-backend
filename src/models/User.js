@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema(
     phone: {
       type: String,
       trim: true,
-      match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit phone number'],
+      match: [/^\+[1-9]\d{6,14}$/, 'Please enter a valid international phone number'],
     },
     isActive: {
       type: Boolean,

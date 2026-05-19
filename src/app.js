@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth.routes');
 const app = express();
 
 const allowedOrigins = [
+  'https://project-find-pharmacy.vercel.app',
   process.env.FRONTEND_URL,
   'http://localhost:4200',
 ].filter(Boolean);

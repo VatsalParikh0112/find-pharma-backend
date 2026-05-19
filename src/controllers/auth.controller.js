@@ -14,20 +14,39 @@ const register = async (req, res) => {
     return res.status(400).json({ success: false, errors: errors.array() });
   }
 
-  const { name, email, password, phone, emailOtp } = req.body;
+  const { name, email, password, phone, emailOtp, phoneOtp } = req.body;
+  console.log('[Register] Attempt:', { email, phone: phone || 'none' });
 
   try {
+    // Check email uniqueness
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(409).json({ success: false, message: 'Email already registered' });
     }
 
+    // Check phone uniqueness if provided
+    if (phone) {
+      const existingPhone = await User.findOne({ phone });
+      if (existingPhone) {
+        return res.status(409).json({ success: false, message: 'Phone number already registered' });
+      }
+    }
+
+    // Verify email OTP
     const emailResult = await verifyOtpRecord(email.toLowerCase(), 'email', emailOtp);
+    console.log('[Register] Email OTP result:', emailResult);
     if (!emailResult.valid) {
       return res.status(400).json({ success: false, message: emailResult.message });
     }
 
-    const user = await User.create({ name, email, password, ...(phone && { phone }) });
+    // Verify phone OTP
+    const phoneResult = await verifyOtpRecord(phone, 'phone', phoneOtp);
+    console.log('[Register] Phone OTP result:', phoneResult);
+    if (!phoneResult.valid) {
+      return res.status(400).json({ success: false, message: `Phone OTP: ${phoneResult.message}` });
+    }
+
+    const user = await User.create({ name, email, password, phone });
     const token = generateToken(user._id);
 
     res.status(201).json({
@@ -48,12 +67,16 @@ const login = async (req, res) => {
     return res.status(400).json({ success: false, errors: errors.array() });
   }
 
-  const { email, password } = req.body;
+  const { email, phone, password } = req.body;
+
+  if (!email && !phone) {
+    return res.status(400).json({ success: false, message: 'Email or phone number is required' });
+  }
 
   try {
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne(email ? { email } : { phone }).select('+password');
     if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+      return res.status(401).json({ success: false, message: `Invalid ${email ? 'email' : 'phone'} or password` });
     }
 
     if (!user.isActive) {

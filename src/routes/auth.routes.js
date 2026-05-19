@@ -7,15 +7,16 @@ const { protect } = require('../middleware/auth.middleware');
 const router = express.Router();
 
 const otpRule = body('emailOtp').matches(/^\d{6}$/).withMessage('Email OTP must be 6 digits');
+const phoneOtpRule = body('phoneOtp').matches(/^\d{6}$/).withMessage('Phone OTP must be 6 digits');
 
 router.post(
   '/send-registration-otp',
   [
     body('email').isEmail().withMessage('Please enter a valid email').normalizeEmail(),
     body('phone')
-      .optional({ checkFalsy: true })
-      .matches(/^[0-9]{10}$/)
-      .withMessage('Please enter a valid 10-digit phone number'),
+      .notEmpty().withMessage('Phone number is required')
+      .matches(/^\+[1-9]\d{6,14}$/)
+      .withMessage('Please enter a valid international phone number (e.g. +12025551234)'),
   ],
   sendRegistrationOtp
 );
@@ -27,10 +28,11 @@ router.post(
     body('email').isEmail().withMessage('Please enter a valid email').normalizeEmail(),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
     body('phone')
-      .optional({ checkFalsy: true })
-      .matches(/^[0-9]{10}$/)
-      .withMessage('Please enter a valid 10-digit phone number'),
+      .notEmpty().withMessage('Phone number is required')
+      .matches(/^\+[1-9]\d{6,14}$/)
+      .withMessage('Please enter a valid international phone number (e.g. +12025551234)'),
     otpRule,
+    phoneOtpRule,
   ],
   register
 );
@@ -38,7 +40,8 @@ router.post(
 router.post(
   '/login',
   [
-    body('email').isEmail().withMessage('Please enter a valid email').normalizeEmail(),
+    body('email').optional({ checkFalsy: true }).isEmail().withMessage('Please enter a valid email').normalizeEmail(),
+    body('phone').optional({ checkFalsy: true }).matches(/^\+[1-9]\d{6,14}$/).withMessage('Please enter a valid phone number'),
     body('password').notEmpty().withMessage('Password is required'),
   ],
   login
@@ -46,14 +49,18 @@ router.post(
 
 router.post(
   '/send-otp',
-  [body('email').isEmail().withMessage('Please enter a valid email').normalizeEmail()],
+  [
+    body('email').optional({ checkFalsy: true }).isEmail().withMessage('Please enter a valid email').normalizeEmail(),
+    body('phone').optional({ checkFalsy: true }).matches(/^\+[1-9]\d{6,14}$/).withMessage('Please enter a valid phone number'),
+  ],
   sendOtp
 );
 
 router.post(
   '/verify-otp',
   [
-    body('email').isEmail().withMessage('Please enter a valid email').normalizeEmail(),
+    body('email').optional({ checkFalsy: true }).isEmail().withMessage('Please enter a valid email').normalizeEmail(),
+    body('phone').optional({ checkFalsy: true }).matches(/^\+[1-9]\d{6,14}$/).withMessage('Please enter a valid phone number'),
     body('otp').matches(/^\d{6}$/).withMessage('OTP must be a 6-digit number'),
   ],
   verifyOtp

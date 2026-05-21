@@ -15,16 +15,13 @@ const register = async (req, res) => {
   }
 
   const { name, email, password, phone, emailOtp, phoneOtp } = req.body;
-  console.log('[Register] Attempt:', { email, phone: phone || 'none' });
 
   try {
-    // Check email uniqueness
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(409).json({ success: false, message: 'Email already registered' });
     }
 
-    // Check phone uniqueness if provided
     if (phone) {
       const existingPhone = await User.findOne({ phone });
       if (existingPhone) {
@@ -32,16 +29,12 @@ const register = async (req, res) => {
       }
     }
 
-    // Verify email OTP
     const emailResult = await verifyOtpRecord(email.toLowerCase(), 'email', emailOtp);
-    console.log('[Register] Email OTP result:', emailResult);
     if (!emailResult.valid) {
       return res.status(400).json({ success: false, message: emailResult.message });
     }
 
-    // Verify phone OTP
     const phoneResult = await verifyOtpRecord(phone, 'phone', phoneOtp);
-    console.log('[Register] Phone OTP result:', phoneResult);
     if (!phoneResult.valid) {
       return res.status(400).json({ success: false, message: `Phone OTP: ${phoneResult.message}` });
     }
@@ -56,7 +49,7 @@ const register = async (req, res) => {
       user,
     });
   } catch (err) {
-    console.error('Register error:', err);
+    console.error('Register error:', err.message);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -92,7 +85,7 @@ const login = async (req, res) => {
       user: { _id: user._id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt },
     });
   } catch (err) {
-    console.error('Login error:', err);
+    console.error('Login error:', err.message);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };

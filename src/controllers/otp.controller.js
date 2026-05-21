@@ -20,9 +20,7 @@ const createOtp = async (target, type) => {
 };
 
 const verifyOtpRecord = async (target, type, code) => {
-  console.log('[verifyOtpRecord] Querying:', { target, type });
   const record = await Otp.findOne({ target, type }).sort({ createdAt: -1 });
-  console.log('[verifyOtpRecord] Record found:', record ? { target: record.target, type: record.type, used: record.used, expiresAt: record.expiresAt } : null);
   if (!record) return { valid: false, message: 'OTP not found. Please request a new one.' };
   if (record.used) return { valid: false, message: 'OTP already used. Please request a new one.' };
   if (record.expiresAt < new Date()) return { valid: false, message: 'OTP has expired. Please request a new one.' };
@@ -43,23 +41,19 @@ const sendRegistrationOtp = async (req, res) => {
   const { email, phone } = req.body;
 
   try {
-    // Check email uniqueness
     const existingEmail = await User.findOne({ email });
     if (existingEmail) {
       return res.status(409).json({ success: false, message: 'Email already registered' });
     }
 
-    // Check phone uniqueness
     const existingPhone = await User.findOne({ phone });
     if (existingPhone) {
       return res.status(409).json({ success: false, message: 'Phone number already registered' });
     }
 
-    // Send email OTP
     const emailCode = await createOtp(email.toLowerCase(), 'email');
     await sendOtpEmail(email, emailCode);
 
-    // Send phone OTP
     const phoneCode = await createOtp(phone, 'phone');
     await sendOtpSms(phone, phoneCode);
 
@@ -97,19 +91,16 @@ const sendOtp = async (req, res) => {
     }
 
     if (email) {
-      const target = email.toLowerCase();
-      console.log('[sendOtp] Creating OTP with target:', target);
-      const code = await createOtp(target, 'email');
+      const code = await createOtp(email.toLowerCase(), 'email');
       await sendOtpEmail(email, code);
       res.json({ success: true, message: 'OTP sent to your email' });
     } else {
-      console.log('[sendOtp] Creating OTP with target:', phone);
       const code = await createOtp(phone, 'phone');
       await sendOtpSms(phone, code);
       res.json({ success: true, message: 'OTP sent to your phone' });
     }
   } catch (err) {
-    console.error('Send OTP error:', err);
+    console.error('Send OTP error:', err.message);
     res.status(500).json({ success: false, message: 'Failed to send OTP' });
   }
 };
@@ -122,7 +113,6 @@ const verifyOtp = async (req, res) => {
   }
 
   const { email, phone, otp } = req.body;
-  console.log('[verifyOtp] Request body:', { email, phone, otp });
 
   if (!email && !phone) {
     return res.status(400).json({ success: false, message: 'Email or phone number is required' });
@@ -131,7 +121,6 @@ const verifyOtp = async (req, res) => {
   try {
     const target = email ? email.toLowerCase() : phone;
     const type = email ? 'email' : 'phone';
-    console.log('[verifyOtp] Verifying:', { target, type });
 
     const result = await verifyOtpRecord(target, type, otp);
     if (!result.valid) {
@@ -148,7 +137,7 @@ const verifyOtp = async (req, res) => {
       user: { _id: user._id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt },
     });
   } catch (err) {
-    console.error('Verify OTP error:', err);
+    console.error('Verify OTP error:', err.message);
     res.status(500).json({ success: false, message: 'OTP verification failed' });
   }
 };

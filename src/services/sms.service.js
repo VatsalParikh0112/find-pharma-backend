@@ -1,10 +1,8 @@
 const sendOtpSms = async (phone, otp) => {
-  console.log(`[SMS OTP] ${phone} → ${otp}`);
-
   const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER } = process.env;
 
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
-    throw new Error('Twilio credentials are not configured. Please set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER in your environment variables.');
+    throw new Error('SMS service is not configured.');
   }
 
   const twilio = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
@@ -13,8 +11,6 @@ const sendOtpSms = async (phone, otp) => {
     from: TWILIO_PHONE_NUMBER,
     to: phone,
   });
-
-  console.log(`[SMS] OTP sent to ${phone}`);
 };
 
 module.exports = { sendOtpSms };

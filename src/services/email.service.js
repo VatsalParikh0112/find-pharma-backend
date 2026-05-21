@@ -1,12 +1,10 @@
 const nodemailer = require('nodemailer');
 
 const sendOtpEmail = async (email, otp) => {
-  console.log(`[OTP] ${email} → ${otp}`);
-
   const { EMAIL_USER, EMAIL_PASS } = process.env;
 
   if (!EMAIL_USER || !EMAIL_PASS) {
-    throw new Error('Email credentials are not configured. Please set EMAIL_USER and EMAIL_PASS in your environment variables.');
+    throw new Error('Email service is not configured.');
   }
 
   const transporter = nodemailer.createTransport({
@@ -34,8 +32,6 @@ const sendOtpEmail = async (email, otp) => {
       </div>
     `,
   });
-
-  console.log(`[Email] OTP sent to ${email}`);
 };
 
 module.exports = { sendOtpEmail };

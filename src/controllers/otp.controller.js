@@ -69,7 +69,7 @@ const sendRegistrationOtp = async (req, res) => {
       phoneSent: true,
     });
   } catch (err) {
-    console.error('Send registration OTP error:', err);
+    console.error('Send registration OTP error:', err.message);
     res.status(500).json({ success: false, message: err.message || 'Failed to send OTPs' });
   }
 };

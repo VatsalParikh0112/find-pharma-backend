@@ -134,7 +134,7 @@ const verifyOtp = async (req, res) => {
       success: true,
       message: 'Login successful',
       token,
-      user: { _id: user._id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt },
+      user: { _id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, createdAt: user.createdAt },
     });
   } catch (err) {
     console.error('Verify OTP error:', err.message);
@@ -142,4 +142,240 @@ const verifyOtp = async (req, res) => {
   }
 };
 
-module.exports = { sendRegistrationOtp, sendOtp, verifyOtp, verifyOtpRecord };
+// POST /api/auth/forgot-password (public)
+const sendForgotPasswordOtp = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, errors: errors.array() });
+  }
+
+  const { email, phone } = req.body;
+
+  if (!email && !phone) {
+    return res.status(400).json({ success: false, message: 'Email or phone number is required' });
+  }
+
+  try {
+    const user = await User.findOne(email ? { email } : { phone });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: `No account found with this ${email ? 'email' : 'phone number'}`,
+      });
+    }
+
+    if (email) {
+      const code = await createOtp(email.toLowerCase(), 'email');
+      await sendOtpEmail(email, code);
+      res.json({ success: true, message: 'OTP sent to your email' });
+    } else {
+      const code = await createOtp(phone, 'phone');
+      await sendOtpSms(phone, code);
+      res.json({ success: true, message: 'OTP sent to your phone' });
+    }
+  } catch (err) {
+    console.error('Forgot password OTP error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to send OTP' });
+  }
+};
+
+// POST /api/auth/reset-password (public)
+const resetPassword = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, errors: errors.array() });
+  }
+
+  const { email, phone, otp, newPassword } = req.body;
+
+  if (!email && !phone) {
+    return res.status(400).json({ success: false, message: 'Email or phone number is required' });
+  }
+
+  try {
+    const target = email ? email.toLowerCase() : phone;
+    const type = email ? 'email' : 'phone';
+
+    const result = await verifyOtpRecord(target, type, otp);
+    if (!result.valid) {
+      return res.status(400).json({ success: false, message: result.message });
+    }
+
+    const user = await User.findOne(email ? { email } : { phone }).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Account not found' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (err) {
+    console.error('Reset password error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// POST /api/auth/send-change-email-otp (protected)
+// Sends OTP to both the current email and the new email
+const sendChangeEmailOtp = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, errors: errors.array() });
+  }
+
+  const { newEmail } = req.body;
+  const currentEmail = req.user.email;
+
+  try {
+    const existing = await User.findOne({ email: newEmail.toLowerCase(), _id: { $ne: req.user._id } });
+    if (existing) {
+      return res.status(409).json({ success: false, message: 'Email already used by another account' });
+    }
+
+    const currentCode = await createOtp(currentEmail.toLowerCase(), 'email');
+    await sendOtpEmail(currentEmail, currentCode);
+
+    const newCode = await createOtp(newEmail.toLowerCase(), 'email');
+    await sendOtpEmail(newEmail, newCode);
+
+    res.json({ success: true, message: 'OTP sent to your current and new email' });
+  } catch (err) {
+    console.error('Send change email OTP error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to send OTP' });
+  }
+};
+
+// PUT /api/auth/change-email (protected)
+// Verifies OTP from current email AND new email before updating
+const changeEmail = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, errors: errors.array() });
+  }
+
+  const { newEmail, currentOtp, newOtp } = req.body;
+
+  try {
+    const existing = await User.findOne({ email: newEmail.toLowerCase(), _id: { $ne: req.user._id } });
+    if (existing) {
+      return res.status(409).json({ success: false, message: 'Email already used by another account' });
+    }
+
+    const currentResult = await verifyOtpRecord(req.user.email.toLowerCase(), 'email', currentOtp);
+    if (!currentResult.valid) {
+      return res.status(400).json({ success: false, message: `Current email OTP: ${currentResult.message}` });
+    }
+
+    const newResult = await verifyOtpRecord(newEmail.toLowerCase(), 'email', newOtp);
+    if (!newResult.valid) {
+      return res.status(400).json({ success: false, message: `New email OTP: ${newResult.message}` });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { email: newEmail.toLowerCase() },
+      { new: true, runValidators: true },
+    );
+
+    const token = generateToken(user._id);
+
+    res.json({ success: true, message: 'Email updated successfully', token, user });
+  } catch (err) {
+    console.error('Change email error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// POST /api/auth/send-change-phone-otp (protected)
+// If user already has a phone, sends OTP to both current and new phone.
+// If user has no phone yet, sends OTP only to the new phone.
+const sendChangePhoneOtp = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, errors: errors.array() });
+  }
+
+  const { newPhone } = req.body;
+  const currentPhone = req.user.phone;
+
+  try {
+    const existing = await User.findOne({ phone: newPhone, _id: { $ne: req.user._id } });
+    if (existing) {
+      return res.status(409).json({ success: false, message: 'Phone already used by another account' });
+    }
+
+    if (currentPhone) {
+      const currentCode = await createOtp(currentPhone, 'phone');
+      await sendOtpSms(currentPhone, currentCode);
+    }
+
+    const newCode = await createOtp(newPhone, 'phone');
+    await sendOtpSms(newPhone, newCode);
+
+    res.json({
+      success: true,
+      message: currentPhone ? 'OTP sent to your current and new phone number' : 'OTP sent to your new phone number',
+    });
+  } catch (err) {
+    console.error('Send change phone OTP error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to send OTP' });
+  }
+};
+
+// PUT /api/auth/change-phone (protected)
+// If user has a current phone, verifies OTP from both. Otherwise verifies only the new phone OTP.
+const changePhone = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, errors: errors.array() });
+  }
+
+  const { newPhone, currentOtp, newOtp } = req.body;
+  const currentPhone = req.user.phone;
+
+  try {
+    const existing = await User.findOne({ phone: newPhone, _id: { $ne: req.user._id } });
+    if (existing) {
+      return res.status(409).json({ success: false, message: 'Phone already used by another account' });
+    }
+
+    if (currentPhone) {
+      const currentResult = await verifyOtpRecord(currentPhone, 'phone', currentOtp);
+      if (!currentResult.valid) {
+        return res.status(400).json({ success: false, message: `Current phone OTP: ${currentResult.message}` });
+      }
+    }
+
+    const newResult = await verifyOtpRecord(newPhone, 'phone', newOtp);
+    if (!newResult.valid) {
+      return res.status(400).json({ success: false, message: `New phone OTP: ${newResult.message}` });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { phone: newPhone },
+      { new: true, runValidators: true },
+    );
+
+    const token = generateToken(user._id);
+
+    res.json({ success: true, message: 'Phone number updated successfully', token, user });
+  } catch (err) {
+    console.error('Change phone error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+module.exports = {
+  sendRegistrationOtp,
+  sendOtp,
+  verifyOtp,
+  verifyOtpRecord,
+  sendForgotPasswordOtp,
+  resetPassword,
+  sendChangeEmailOtp,
+  changeEmail,
+  sendChangePhoneOtp,
+  changePhone,
+};

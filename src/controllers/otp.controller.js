@@ -86,12 +86,10 @@ const sendOtp = async (req, res) => {
   try {
     const user = await User.findOne(email ? { email } : { phone });
     if (!user) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: `No account found with this ${email ? 'email' : 'phone number'}`,
-        });
+      return res.status(404).json({
+        success: false,
+        message: `No account found with this ${email ? 'email' : 'phone number'}`,
+      });
     }
     if (!user.isActive) {
       return res.status(403).json({ success: false, message: 'Account is disabled' });

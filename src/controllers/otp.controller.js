@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Otp = require('../models/Otp');
 const { sendOtpEmail } = require('../services/email.service');
 const { sendOtpSms } = require('../services/sms.service');
+const { setAuthCookie } = require('../utils/cookie');
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -129,6 +130,7 @@ const verifyOtp = async (req, res) => {
 
     const user = await User.findOne(email ? { email } : { phone });
     const token = generateToken(user._id);
+    setAuthCookie(res, token);
 
     res.json({
       success: true,
@@ -279,6 +281,7 @@ const changeEmail = async (req, res) => {
     );
 
     const token = generateToken(user._id);
+    setAuthCookie(res, token);
 
     res.json({ success: true, message: 'Email updated successfully', token, user });
   } catch (err) {
@@ -359,6 +362,7 @@ const changePhone = async (req, res) => {
     );
 
     const token = generateToken(user._id);
+    setAuthCookie(res, token);
 
     res.json({ success: true, message: 'Phone number updated successfully', token, user });
   } catch (err) {

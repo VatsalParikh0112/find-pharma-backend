@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
 
 const authRoutes = require('./routes/auth.routes');
@@ -60,6 +61,7 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json({ limit: '10kb' }));
+app.use(cookieParser());
 
 let isConnected = false;
 

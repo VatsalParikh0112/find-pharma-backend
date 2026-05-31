@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const User = require('../models/User');
 const { verifyOtpRecord } = require('./otp.controller');
+const { setAuthCookie, clearAuthCookie } = require('../utils/cookie');
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -41,6 +42,7 @@ const register = async (req, res) => {
 
     const user = await User.create({ name, email, password, phone });
     const token = generateToken(user._id);
+    setAuthCookie(res, token);
 
     res.status(201).json({
       success: true,
@@ -77,6 +79,7 @@ const login = async (req, res) => {
     }
 
     const token = generateToken(user._id);
+    setAuthCookie(res, token);
 
     res.json({
       success: true,
@@ -111,6 +114,7 @@ const updateProfile = async (req, res) => {
     );
 
     const token = generateToken(user._id);
+    setAuthCookie(res, token);
 
     res.json({ success: true, message: 'Profile updated successfully', token, user });
   } catch (err) {
@@ -144,4 +148,10 @@ const changePassword = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getMe, updateProfile, changePassword };
+// POST /api/auth/logout
+const logout = async (req, res) => {
+  clearAuthCookie(res);
+  res.json({ success: true, message: 'Logged out successfully' });
+};
+
+module.exports = { register, login, getMe, updateProfile, changePassword, logout };

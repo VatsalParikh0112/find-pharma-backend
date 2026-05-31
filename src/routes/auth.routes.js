@@ -1,6 +1,6 @@
 const express = require('express');
 const { body } = require('express-validator');
-const { register, login, getMe, updateProfile, changePassword } = require('../controllers/auth.controller');
+const { register, login, getMe, updateProfile, changePassword, logout } = require('../controllers/auth.controller');
 const {
   sendRegistrationOtp,
   sendOtp,
@@ -96,6 +96,8 @@ router.post(
   ],
   resetPassword,
 );
+
+router.post('/logout', logout);
 
 // ─── Protected ───────────────────────────────────────────────────────────────
 

@@ -139,4 +139,10 @@ const getPharmacyRequests = async (req, res) => {
   }
 };
 
-module.exports = { createRequest, getMyRequests, getMyActiveRequests, cancelRequest, getPharmacyRequests };
+module.exports = {
+  createRequest,
+  getMyRequests,
+  getMyActiveRequests,
+  cancelRequest,
+  getPharmacyRequests,
+};

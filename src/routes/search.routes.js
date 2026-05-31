@@ -10,13 +10,8 @@ router.use(protect);
 router.post(
   '/',
   [
-    body('medicines')
-      .isArray({ min: 1 })
-      .withMessage('At least one medicine is required'),
-    body('medicines.*.name')
-      .trim()
-      .notEmpty()
-      .withMessage('Medicine name is required'),
+    body('medicines').isArray({ min: 1 }).withMessage('At least one medicine is required'),
+    body('medicines.*.name').trim().notEmpty().withMessage('Medicine name is required'),
   ],
   saveSearch,
 );

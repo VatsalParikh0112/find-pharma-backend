@@ -30,8 +30,7 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    const vercelPreviewRegex =
-      /^https:\/\/.*find-pharmacy.*\.vercel\.app$/;
+    const vercelPreviewRegex = /^https:\/\/.*find-pharmacy.*\.vercel\.app$/;
 
     if (vercelPreviewRegex.test(origin)) {
       return callback(null, true);
@@ -44,11 +43,7 @@ const corsOptions = {
 
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Requested-With',
-  ],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 };
 
 app.use(cors(corsOptions));
@@ -124,7 +119,6 @@ app.use('/api/searches', searchRoutes);
 app.use('/api/insurance', insuranceRoutes);
 app.use('/api/health-profile', healthProfileRoutes);
 
-
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -141,7 +135,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;
   connectDB()
@@ -150,7 +143,7 @@ if (require.main === module) {
         console.log(`🚀 Server running on port ${PORT}`);
       });
     })
-    .catch((error) => {
+    .catch(error => {
       console.error('❌ Failed to start server:', error.message);
       process.exit(1);
     });

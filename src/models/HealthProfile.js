@@ -19,9 +19,9 @@ const healthProfileSchema = new mongoose.Schema(
       type: String,
       enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'],
     },
-    heightFt: { type: Number, min: 0 },   // feet
+    heightFt: { type: Number, min: 0 }, // feet
     heightIn: { type: Number, min: 0, max: 11 }, // inches
-    weightLbs: { type: Number, min: 0 },  // pounds (US)
+    weightLbs: { type: Number, min: 0 }, // pounds (US)
 
     // ── Medical conditions ─────────────────────────────────────────────────
     conditions: [

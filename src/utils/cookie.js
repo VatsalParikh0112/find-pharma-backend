@@ -6,9 +6,9 @@ const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 const COOKIE_NAME = 'auth_token';
 
 const cookieOptions = {
-  httpOnly: true,            // JS cannot read it → immune to XSS token theft
-  secure: isProd,            // HTTPS only in production (localhost dev is http)
-  sameSite: 'lax',           // first-party (frontend proxies /api to backend)
+  httpOnly: true, // JS cannot read it → immune to XSS token theft
+  secure: isProd, // HTTPS only in production (localhost dev is http)
+  sameSite: 'lax', // first-party (frontend proxies /api to backend)
   maxAge: COOKIE_MAX_AGE,
   path: '/',
 };
@@ -19,7 +19,7 @@ const setAuthCookie = (res, token) => {
 };
 
 /** Clear the auth cookie (logout). */
-const clearAuthCookie = (res) => {
+const clearAuthCookie = res => {
   res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: undefined });
 };
 

@@ -15,8 +15,17 @@ const getHealthProfile = async (req, res) => {
 const saveHealthProfile = async (req, res) => {
   try {
     const {
-      dateOfBirth, gender, bloodType, heightFt, heightIn, weightLbs,
-      conditions, allergies, medications, emergencyContact, primaryPhysician,
+      dateOfBirth,
+      gender,
+      bloodType,
+      heightFt,
+      heightIn,
+      weightLbs,
+      conditions,
+      allergies,
+      medications,
+      emergencyContact,
+      primaryPhysician,
     } = req.body;
 
     const profile = await HealthProfile.findOneAndUpdate(

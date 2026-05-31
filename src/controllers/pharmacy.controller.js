@@ -2,7 +2,7 @@ const Pharmacy = require('../models/Pharmacy');
 
 const MAX_DISTANCE_METERS = 20000; // 20 km
 
-const geocodePostalCode = async (postalCode) => {
+const geocodePostalCode = async postalCode => {
   const url = `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(postalCode)}&country=US&format=json&limit=1`;
   const response = await fetch(url, {
     headers: { 'User-Agent': 'FindMyPharma/1.0' },

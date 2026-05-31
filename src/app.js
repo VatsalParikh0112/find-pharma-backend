@@ -7,6 +7,9 @@ const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth.routes');
 const pharmacyRoutes = require('./routes/pharmacy.routes');
 const requestRoutes = require('./routes/request.routes');
+const searchRoutes = require('./routes/search.routes');
+const insuranceRoutes = require('./routes/insurance.routes');
+const healthProfileRoutes = require('./routes/healthProfile.routes');
 
 const app = express();
 
@@ -115,6 +118,9 @@ app.get('/test', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/pharmacies', pharmacyRoutes);
 app.use('/api/requests', requestRoutes);
+app.use('/api/searches', searchRoutes);
+app.use('/api/insurance', insuranceRoutes);
+app.use('/api/health-profile', healthProfileRoutes);
 
 
 app.use((req, res) => {

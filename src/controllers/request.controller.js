@@ -1,6 +1,7 @@
 const { validationResult } = require('express-validator');
 const MedicineRequest = require('../models/MedicineRequest');
 const Pharmacy = require('../models/Pharmacy');
+const Insurance = require('../models/Insurance');
 
 // POST /api/requests (protected)
 const createRequest = async (req, res) => {
@@ -9,7 +10,7 @@ const createRequest = async (req, res) => {
     return res.status(400).json({ success: false, errors: errors.array() });
   }
 
-  const { pharmacyId, medicineName, quantity, notes } = req.body;
+  const { pharmacyId, medicineName, quantity, notes, insuranceId } = req.body;
 
   try {
     const pharmacy = await Pharmacy.findById(pharmacyId);
@@ -31,15 +32,27 @@ const createRequest = async (req, res) => {
       });
     }
 
+    // Validate insurance if provided
+    if (insuranceId) {
+      const insurance = await Insurance.findOne({ _id: insuranceId, patient: req.user._id });
+      if (!insurance) {
+        return res.status(404).json({ success: false, message: 'Insurance not found' });
+      }
+    }
+
     const request = await MedicineRequest.create({
       patient: req.user._id,
       pharmacy: pharmacyId,
       medicineName: medicineName.trim(),
       quantity: quantity?.trim() || undefined,
       notes: notes?.trim() || undefined,
+      insurance: insuranceId || null,
     });
 
-    const populated = await request.populate('pharmacy', 'name address phone');
+    const populated = await request.populate([
+      { path: 'pharmacy', select: 'name address phone' },
+      { path: 'insurance', select: 'providerName policyNumber planName holderName' },
+    ]);
 
     res.status(201).json({
       success: true,
@@ -57,6 +70,7 @@ const getMyRequests = async (req, res) => {
   try {
     const requests = await MedicineRequest.find({ patient: req.user._id })
       .populate('pharmacy', 'name address phone')
+      .populate('insurance', 'providerName policyNumber planName holderName')
       .sort({ createdAt: -1 });
 
     res.json({ success: true, requests });
@@ -111,4 +125,18 @@ const cancelRequest = async (req, res) => {
   }
 };
 
-module.exports = { createRequest, getMyRequests, getMyActiveRequests, cancelRequest };
+// GET /api/requests/pharmacy/:pharmacyId (protected — any authenticated user can view a pharmacy's requests)
+const getPharmacyRequests = async (req, res) => {
+  try {
+    const requests = await MedicineRequest.find({ pharmacy: req.params.pharmacyId })
+      .populate('patient', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.json({ success: true, requests });
+  } catch (err) {
+    console.error('Get pharmacy requests error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+module.exports = { createRequest, getMyRequests, getMyActiveRequests, cancelRequest, getPharmacyRequests };

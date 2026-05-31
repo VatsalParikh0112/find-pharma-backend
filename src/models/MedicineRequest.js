@@ -26,6 +26,11 @@ const medicineRequestSchema = new mongoose.Schema(
       trim: true,
       maxlength: [500, 'Notes cannot exceed 500 characters'],
     },
+    insurance: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Insurance',
+      default: null,
+    },
     status: {
       type: String,
       enum: ['pending', 'accepted', 'rejected', 'fulfilled'],

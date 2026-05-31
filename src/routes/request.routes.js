@@ -1,6 +1,6 @@
 const express = require('express');
 const { body } = require('express-validator');
-const { createRequest, getMyRequests, getMyActiveRequests, cancelRequest } = require('../controllers/request.controller');
+const { createRequest, getMyRequests, getMyActiveRequests, cancelRequest, getPharmacyRequests } = require('../controllers/request.controller');
 const { protect } = require('../middleware/auth.middleware');
 
 const router = express.Router();
@@ -21,5 +21,6 @@ router.post(
 router.get('/my', getMyRequests);
 router.get('/my/active', getMyActiveRequests);
 router.delete('/:id', cancelRequest);
+router.get('/pharmacy/:pharmacyId', getPharmacyRequests);
 
 module.exports = router;

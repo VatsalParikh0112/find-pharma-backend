@@ -2,6 +2,7 @@ const { validationResult } = require('express-validator');
 const MedicineRequest = require('../models/MedicineRequest');
 const Pharmacy = require('../models/Pharmacy');
 const Insurance = require('../models/Insurance');
+const { sendRequestConfirmationEmail } = require('../services/email.service');
 
 // POST /api/requests (protected)
 const createRequest = async (req, res) => {
@@ -53,6 +54,16 @@ const createRequest = async (req, res) => {
       { path: 'pharmacy', select: 'name address phone' },
       { path: 'insurance', select: 'providerName policyNumber planName holderName' },
     ]);
+
+    // Confirm to the patient by email — non-blocking so a mail failure never
+    // fails the request itself.
+    if (req.user.email) {
+      sendRequestConfirmationEmail(req.user.email, {
+        patientName: req.user.name,
+        medicineName: request.medicineName,
+        pharmacyName: pharmacy.name,
+      }).catch(err => console.error('Request confirmation email failed:', err.message));
+    }
 
     res.status(201).json({
       success: true,

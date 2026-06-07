@@ -46,7 +46,11 @@ const getPharmacies = async (req, res) => {
           distanceField: 'distanceMeters',
           maxDistance: MAX_DISTANCE_METERS,
           spherical: true,
-          query: { isActive: true },
+          query: {
+            isActive: true,
+            verificationStatus: 'approved',
+            accountStatus: { $ne: 'disabled' },
+          },
         },
       },
       {

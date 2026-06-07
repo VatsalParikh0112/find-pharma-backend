@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { getModelForType } = require('../utils/account');
 
 const protect = async (req, res, next) => {
   let token;
@@ -17,7 +17,20 @@ const protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id);
+
+    // The router pins the expected account type. A patient token must never be
+    // accepted on a pharmacy route and vice versa.
+    const expectedType = req.account?.accountType;
+    if (expectedType && decoded.accountType !== expectedType) {
+      return res.status(401).json({ success: false, message: 'Not authorized for this portal' });
+    }
+
+    const Model = getModelForType(decoded.accountType);
+    if (!Model) {
+      return res.status(401).json({ success: false, message: 'Token is invalid or expired' });
+    }
+
+    req.user = await Model.findById(decoded.id);
 
     if (!req.user) {
       return res.status(401).json({ success: false, message: 'User no longer exists' });

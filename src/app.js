@@ -5,7 +5,10 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
 
-const authRoutes = require('./routes/auth.routes');
+const createAuthRouter = require('./routes/auth.routes');
+const pharmacyPortalRoutes = require('./routes/pharmacyPortal.routes');
+const adminRoutes = require('./routes/admin.routes');
+const createSupportRouter = require('./routes/support.routes');
 const pharmacyRoutes = require('./routes/pharmacy.routes');
 const requestRoutes = require('./routes/request.routes');
 const searchRoutes = require('./routes/search.routes');
@@ -15,8 +18,9 @@ const healthProfileRoutes = require('./routes/healthProfile.routes');
 const app = express();
 
 const allowedOrigins = [
-  'https://project-find-pharmacy.vercel.app',
-  'http://localhost:4200',
+  'https://find-pharmacy-three.vercel.app', // patient portal (Vercel)
+  'http://localhost:4200', // patient portal (dev)
+  'http://localhost:4300', // admin portal (dev)
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
@@ -112,7 +116,12 @@ app.get('/test', (req, res) => {
   });
 });
 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', createAuthRouter('patient'));
+app.use('/api/pharmacy/auth', createAuthRouter('pharmacy'));
+app.use('/api/pharmacy', pharmacyPortalRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/support', createSupportRouter('patient'));
+app.use('/api/pharmacy/support', createSupportRouter('pharmacy'));
 app.use('/api/pharmacies', pharmacyRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/searches', searchRoutes);

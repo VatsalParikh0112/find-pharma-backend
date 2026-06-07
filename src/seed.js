@@ -943,7 +943,7 @@ const seed = async () => {
     await Pharmacy.deleteMany({});
     console.log('🗑️  Cleared existing pharmacies');
 
-    const docs = pharmacies.map(p => ({ ...p, isActive: true }));
+    const docs = pharmacies.map(p => ({ ...p, isActive: true, verificationStatus: 'approved' }));
     await Pharmacy.insertMany(docs);
     console.log(`✅ Seeded ${docs.length} pharmacies across East Tennessee`);
 

@@ -1,16 +1,10 @@
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
-const User = require('../models/User');
 const Otp = require('../models/Otp');
 const { sendOtpEmail } = require('../services/email.service');
 const { sendOtpSms } = require('../services/sms.service');
 const { setAuthCookie } = require('../utils/cookie');
-
-const generateToken = id =>
-  jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  });
+const { generateToken } = require('../utils/account');
 
 const createOtp = async (target, type) => {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -43,12 +37,12 @@ const sendRegistrationOtp = async (req, res) => {
   const { email, phone } = req.body;
 
   try {
-    const existingEmail = await User.findOne({ email });
+    const existingEmail = await req.account.Model.findOne({ email });
     if (existingEmail) {
       return res.status(409).json({ success: false, message: 'Email already registered' });
     }
 
-    const existingPhone = await User.findOne({ phone });
+    const existingPhone = await req.account.Model.findOne({ phone });
     if (existingPhone) {
       return res.status(409).json({ success: false, message: 'Phone number already registered' });
     }
@@ -84,7 +78,7 @@ const sendOtp = async (req, res) => {
   }
 
   try {
-    const user = await User.findOne(email ? { email } : { phone });
+    const user = await req.account.Model.findOne(email ? { email } : { phone });
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -132,8 +126,8 @@ const verifyOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: result.message });
     }
 
-    const user = await User.findOne(email ? { email } : { phone });
-    const token = generateToken(user._id);
+    const user = await req.account.Model.findOne(email ? { email } : { phone });
+    const token = generateToken(user._id, req.account.accountType);
     setAuthCookie(res, token);
 
     res.json({
@@ -169,7 +163,7 @@ const sendForgotPasswordOtp = async (req, res) => {
   }
 
   try {
-    const user = await User.findOne(email ? { email } : { phone });
+    const user = await req.account.Model.findOne(email ? { email } : { phone });
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -214,7 +208,7 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: result.message });
     }
 
-    const user = await User.findOne(email ? { email } : { phone }).select('+password');
+    const user = await req.account.Model.findOne(email ? { email } : { phone }).select('+password');
     if (!user) {
       return res.status(404).json({ success: false, message: 'Account not found' });
     }
@@ -241,7 +235,7 @@ const sendChangeEmailOtp = async (req, res) => {
   const currentEmail = req.user.email;
 
   try {
-    const existing = await User.findOne({
+    const existing = await req.account.Model.findOne({
       email: newEmail.toLowerCase(),
       _id: { $ne: req.user._id },
     });
@@ -275,7 +269,7 @@ const changeEmail = async (req, res) => {
   const { newEmail, currentOtp, newOtp } = req.body;
 
   try {
-    const existing = await User.findOne({
+    const existing = await req.account.Model.findOne({
       email: newEmail.toLowerCase(),
       _id: { $ne: req.user._id },
     });
@@ -299,13 +293,13 @@ const changeEmail = async (req, res) => {
         .json({ success: false, message: `New email OTP: ${newResult.message}` });
     }
 
-    const user = await User.findByIdAndUpdate(
+    const user = await req.account.Model.findByIdAndUpdate(
       req.user._id,
       { email: newEmail.toLowerCase() },
       { new: true, runValidators: true },
     );
 
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, req.account.accountType);
     setAuthCookie(res, token);
 
     res.json({ success: true, message: 'Email updated successfully', token, user });
@@ -328,7 +322,7 @@ const sendChangePhoneOtp = async (req, res) => {
   const currentPhone = req.user.phone;
 
   try {
-    const existing = await User.findOne({ phone: newPhone, _id: { $ne: req.user._id } });
+    const existing = await req.account.Model.findOne({ phone: newPhone, _id: { $ne: req.user._id } });
     if (existing) {
       return res
         .status(409)
@@ -367,7 +361,7 @@ const changePhone = async (req, res) => {
   const currentPhone = req.user.phone;
 
   try {
-    const existing = await User.findOne({ phone: newPhone, _id: { $ne: req.user._id } });
+    const existing = await req.account.Model.findOne({ phone: newPhone, _id: { $ne: req.user._id } });
     if (existing) {
       return res
         .status(409)
@@ -390,13 +384,13 @@ const changePhone = async (req, res) => {
         .json({ success: false, message: `New phone OTP: ${newResult.message}` });
     }
 
-    const user = await User.findByIdAndUpdate(
+    const user = await req.account.Model.findByIdAndUpdate(
       req.user._id,
       { phone: newPhone },
       { new: true, runValidators: true },
     );
 
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, req.account.accountType);
     setAuthCookie(res, token);
 
     res.json({ success: true, message: 'Phone number updated successfully', token, user });

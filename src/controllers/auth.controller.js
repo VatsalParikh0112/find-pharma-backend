@@ -1,13 +1,7 @@
-const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
-const User = require('../models/User');
 const { verifyOtpRecord } = require('./otp.controller');
 const { setAuthCookie, clearAuthCookie } = require('../utils/cookie');
-
-const generateToken = id =>
-  jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  });
+const { generateToken } = require('../utils/account');
 
 const register = async (req, res) => {
   const errors = validationResult(req);
@@ -18,13 +12,13 @@ const register = async (req, res) => {
   const { name, email, password, phone, emailOtp, phoneOtp } = req.body;
 
   try {
-    const existing = await User.findOne({ email });
+    const existing = await req.account.Model.findOne({ email });
     if (existing) {
       return res.status(409).json({ success: false, message: 'Email already registered' });
     }
 
     if (phone) {
-      const existingPhone = await User.findOne({ phone });
+      const existingPhone = await req.account.Model.findOne({ phone });
       if (existingPhone) {
         return res.status(409).json({ success: false, message: 'Phone number already registered' });
       }
@@ -40,8 +34,8 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, message: `Phone OTP: ${phoneResult.message}` });
     }
 
-    const user = await User.create({ name, email, password, phone });
-    const token = generateToken(user._id);
+    const user = await req.account.Model.create({ name, email, password, phone });
+    const token = generateToken(user._id, req.account.accountType);
     setAuthCookie(res, token);
 
     res.status(201).json({
@@ -69,7 +63,7 @@ const login = async (req, res) => {
   }
 
   try {
-    const user = await User.findOne(email ? { email } : { phone }).select('+password');
+    const user = await req.account.Model.findOne(email ? { email } : { phone }).select('+password');
     if (!user || !(await user.comparePassword(password))) {
       return res
         .status(401)
@@ -80,7 +74,7 @@ const login = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Account is disabled' });
     }
 
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, req.account.accountType);
     setAuthCookie(res, token);
 
     res.json({
@@ -116,13 +110,13 @@ const updateProfile = async (req, res) => {
   const { name } = req.body;
 
   try {
-    const user = await User.findByIdAndUpdate(
+    const user = await req.account.Model.findByIdAndUpdate(
       req.user._id,
       { name },
       { new: true, runValidators: true },
     );
 
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, req.account.accountType);
     setAuthCookie(res, token);
 
     res.json({ success: true, message: 'Profile updated successfully', token, user });
@@ -142,7 +136,7 @@ const changePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
   try {
-    const user = await User.findById(req.user._id).select('+password');
+    const user = await req.account.Model.findById(req.user._id).select('+password');
     if (!(await user.comparePassword(currentPassword))) {
       return res.status(401).json({ success: false, message: 'Current password is incorrect' });
     }

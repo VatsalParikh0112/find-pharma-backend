@@ -20,8 +20,15 @@ const {
   changePhone,
 } = require('../controllers/otp.controller');
 const { protect } = require('../middleware/auth.middleware');
+const { withAccount } = require('../utils/account');
 
-const router = express.Router();
+// Built as a factory so the patient portal and the pharmacy portal share one
+// route definition while each is pinned to its own account collection.
+const createAuthRouter = accountType => {
+  const router = express.Router();
+
+  // Every handler in this router operates on the matching collection only.
+  router.use(withAccount(accountType));
 
 const otpRule = body('emailOtp')
   .matches(/^\d{6}$/)
@@ -230,4 +237,7 @@ router.put(
   changePhone,
 );
 
-module.exports = router;
+  return router;
+};
+
+module.exports = createAuthRouter;

@@ -3,15 +3,38 @@ const Pharmacy = require('../models/Pharmacy');
 const MAX_DISTANCE_METERS = 20000; // 20 km
 
 const geocodePostalCode = async postalCode => {
-  const url = `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(postalCode)}&country=US&format=json&limit=1`;
-  const response = await fetch(url, {
-    headers: { 'User-Agent': 'FindMyPharma/1.0' },
-    signal: AbortSignal.timeout(5000),
-  });
-  if (!response.ok) return null;
-  const data = await response.json();
-  if (!data.length) return null;
-  return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  const zip = postalCode.trim();
+
+  // Primary: Zippopotam — fast, key-less, reliable from serverless IPs.
+  try {
+    const response = await fetch(`https://api.zippopotam.us/us/${encodeURIComponent(zip)}`, {
+      signal: AbortSignal.timeout(7000),
+    });
+    if (response.ok) {
+      const data = await response.json();
+      const place = data.places && data.places[0];
+      if (place) {
+        return { lat: parseFloat(place.latitude), lng: parseFloat(place.longitude) };
+      }
+    }
+  } catch {
+    // fall through to Nominatim
+  }
+
+  // Fallback: Nominatim (often rate-limited on cloud IPs).
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(zip)}&country=US&format=json&limit=1`;
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'FindMyPharma/1.0 (support@findmypharma.com)' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data.length) return null;
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  } catch {
+    return null;
+  }
 };
 
 // GET /api/pharmacies?lat=35.96&lng=-83.92

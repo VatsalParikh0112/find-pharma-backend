@@ -6,25 +6,54 @@ const {
   sendPharmacyStatusEmail,
 } = require('../services/email.service');
 
-// Geocode a US address to [lng, lat] using OpenStreetMap Nominatim.
-// Tries the full address first, then falls back to the postal code.
-const geocode = async ({ street, city, state, pincode }) => {
-  const lookup = async params => {
-    const url = `https://nominatim.openstreetmap.org/search?${params}&country=US&format=json&limit=1`;
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'FindMyPharma/1.0' },
-      signal: AbortSignal.timeout(5000),
-    });
+// Geocode a US address to [lng, lat]. Primary source is Zippopotam (a fast,
+// key-less US ZIP service that works reliably from serverless IPs). Nominatim
+// is a fallback — it's accurate but often rate-limits cloud IPs, which is why
+// geocoding failed on Vercel.
+const geocodeByZip = async pincode => {
+  try {
+    const url = `https://api.zippopotam.us/us/${encodeURIComponent(pincode.trim())}`;
+    const response = await fetch(url, { signal: AbortSignal.timeout(7000) });
     if (!response.ok) return null;
     const data = await response.json();
-    if (!data.length) return null;
-    return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+    const place = data.places && data.places[0];
+    if (!place) return null;
+    return [parseFloat(place.longitude), parseFloat(place.latitude)];
+  } catch {
+    return null;
+  }
+};
+
+const geocodeByNominatim = async ({ street, city, state, pincode }) => {
+  const lookup = async params => {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?${params}&country=US&format=json&limit=1`;
+      const response = await fetch(url, {
+        headers: { 'User-Agent': 'FindMyPharma/1.0 (support@findmypharma.com)' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!response.ok) return null;
+      const data = await response.json();
+      if (!data.length) return null;
+      return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
+    } catch {
+      return null;
+    }
   };
 
   const full = [street, city, state, pincode].filter(Boolean).join(', ');
   return (
     (full && (await lookup(`q=${encodeURIComponent(full)}`))) ||
     (pincode && (await lookup(`postalcode=${encodeURIComponent(pincode)}`))) ||
+    null
+  );
+};
+
+const geocode = async ({ street, city, state, pincode }) => {
+  // ZIP first (reliable on serverless), then fall back to address-level lookup.
+  return (
+    (pincode && (await geocodeByZip(pincode))) ||
+    (await geocodeByNominatim({ street, city, state, pincode })) ||
     null
   );
 };

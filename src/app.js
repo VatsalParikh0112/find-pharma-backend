@@ -19,6 +19,8 @@ const app = express();
 
 const allowedOrigins = [
   'https://find-pharmacy-three.vercel.app', // patient portal (Vercel)
+  'https://pharmacy-portal-two.vercel.app', // pharmacy portal (Vercel)
+  'https://admin-portal-inky-theta.vercel.app', // admin portal (Vercel)
   'http://localhost:4200', // patient portal (dev)
   'http://localhost:4300', // admin portal (dev)
   process.env.FRONTEND_URL,
@@ -34,7 +36,9 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    const vercelPreviewRegex = /^https:\/\/.*find-pharmacy.*\.vercel\.app$/;
+    // Allow preview deployments of all three frontends.
+    const vercelPreviewRegex =
+      /^https:\/\/.*(find-pharmacy|pharmacy-portal|admin-portal).*\.vercel\.app$/;
 
     if (vercelPreviewRegex.test(origin)) {
       return callback(null, true);

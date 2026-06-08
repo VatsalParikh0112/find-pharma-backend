@@ -9,6 +9,7 @@ const createAuthRouter = require('./routes/auth.routes');
 const pharmacyPortalRoutes = require('./routes/pharmacyPortal.routes');
 const adminRoutes = require('./routes/admin.routes');
 const createSupportRouter = require('./routes/support.routes');
+const pharmacyRequestRoutes = require('./routes/pharmacyRequest.routes');
 const pharmacyRoutes = require('./routes/pharmacy.routes');
 const requestRoutes = require('./routes/request.routes');
 const searchRoutes = require('./routes/search.routes');
@@ -122,6 +123,7 @@ app.get('/test', (req, res) => {
 
 app.use('/api/auth', createAuthRouter('patient'));
 app.use('/api/pharmacy/auth', createAuthRouter('pharmacy'));
+app.use('/api/pharmacy/requests', pharmacyRequestRoutes);
 app.use('/api/pharmacy', pharmacyPortalRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/support', createSupportRouter('patient'));

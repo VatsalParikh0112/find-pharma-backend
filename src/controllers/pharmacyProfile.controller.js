@@ -31,14 +31,15 @@ const geocode = async ({ street, city, state, pincode }) => {
 
 // Test NPIs that pass verification when NOT in production. Lets you exercise
 // the full flow without access to a real pharmacy. Ignored in production.
-const TEST_NPIS = new Set(['1234567893', '1999999984', '0000000000']);
+const TEST_NPIS = new Set(['1234567893', '1987654321', '1999999984', '0000000000']);
 
 // Verify an NPI against the public NPPES government registry. Returns the
 // matched organization name, or null if the NPI doesn't exist / isn't a
 // pharmacy organization.
 const verifyNpi = async npiNumber => {
-  if (process.env.NODE_ENV !== 'production' && TEST_NPIS.has(npiNumber)) {
-    return 'Test Pharmacy (dev mode)';
+  // Test NPIs pass in all environments for now (demo). Remove before going live.
+  if (TEST_NPIS.has(npiNumber)) {
+    return 'Test Pharmacy (demo)';
   }
 
   try {

@@ -15,6 +15,12 @@ const createOtp = async (target, type) => {
 };
 
 const verifyOtpRecord = async (target, type, code) => {
+  // Demo mode: accept a fixed phone OTP so phone verification works without
+  // Twilio. Email OTP stays real. Enable with OTP_DEMO_MODE=true.
+  if (process.env.OTP_DEMO_MODE === 'true' && type === 'phone' && code === '123456') {
+    return { valid: true };
+  }
+
   const record = await Otp.findOne({ target, type }).sort({ createdAt: -1 });
   if (!record) return { valid: false, message: 'OTP not found. Please request a new one.' };
   if (record.used) return { valid: false, message: 'OTP already used. Please request a new one.' };

@@ -191,6 +191,44 @@ const submitPharmacy = async (req, res) => {
   }
 };
 
+// PUT /api/pharmacy/profile/details (protected, pharmacy)
+// Lets an approved pharmacy edit only the non-credential fields (address,
+// opening hours). Name, NPI and state license are immutable here, and the
+// verification status is left untouched.
+const updateDetails = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, errors: errors.array() });
+  }
+
+  const { street, city, state, pincode, openingHours } = req.body;
+
+  try {
+    const pharmacy = await Pharmacy.findOne({ owner: req.user._id });
+    if (!pharmacy) {
+      return res.status(404).json({ success: false, message: 'Pharmacy not found' });
+    }
+
+    const coordinates = await geocode({ street, city, state, pincode });
+    if (!coordinates) {
+      return res.status(400).json({
+        success: false,
+        message: 'We could not locate that address. Please check the street, city, state and ZIP.',
+      });
+    }
+
+    pharmacy.address = { street, city, state, pincode };
+    pharmacy.location = { type: 'Point', coordinates };
+    if (openingHours !== undefined) pharmacy.openingHours = openingHours;
+    await pharmacy.save();
+
+    res.json({ success: true, message: 'Details updated', pharmacy });
+  } catch (err) {
+    console.error('Update details error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 // GET /api/pharmacy/verify?token=... (public — clicked from admin email)
 const verifyPharmacy = async (req, res) => {
   const page = (title, body, color) => `
@@ -245,4 +283,4 @@ const verifyPharmacy = async (req, res) => {
   }
 };
 
-module.exports = { getMyPharmacy, submitPharmacy, verifyPharmacy };
+module.exports = { getMyPharmacy, submitPharmacy, updateDetails, verifyPharmacy };

@@ -3,6 +3,7 @@ const { body } = require('express-validator');
 const {
   getMyPharmacy,
   submitPharmacy,
+  updateDetails,
   verifyPharmacy,
 } = require('../controllers/pharmacyProfile.controller');
 const { protect } = require('../middleware/auth.middleware');
@@ -35,6 +36,19 @@ router.post(
     body('openingHours').optional({ checkFalsy: true }).trim(),
   ],
   submitPharmacy,
+);
+
+// Edit only the non-credential details (address + hours). Name/NPI/license stay fixed.
+router.put(
+  '/profile/details',
+  [
+    body('street').trim().notEmpty().withMessage('Street address is required'),
+    body('city').trim().notEmpty().withMessage('City is required'),
+    body('state').trim().notEmpty().withMessage('State is required'),
+    body('pincode').trim().notEmpty().withMessage('ZIP code is required'),
+    body('openingHours').optional({ checkFalsy: true }).trim(),
+  ],
+  updateDetails,
 );
 
 module.exports = router;
